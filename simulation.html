@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<body>
+<form name=parameters>
+	Number of points:
+	<input type="number" id="Number of points" value="3" min="3" max="1000" step="1">
+	Maximum velocity of points:
+	<input type="number" id="Max velocity" value="0.5" min="0.1">
+	Minimum distance between points:
+	<input type="number" id="Min distance" value="10" min="0" step="1">
+</form>
+<canvas id="Watsky" width="600" height="600" 
+style="border:1px solid #c3c3c3;">
+Your browser does not support the HTML canvas tag.
+</canvas>
+
+	<script>
+				function getInput (id)
+				{
+					return document.getElementById(id).value;
+				}
+	            var canvas = document.getElementById("Watsky");
+				var context = canvas.getContext("2d");
+				context.fillStyle = "#FF0000";
+				var num_points = getInput("Number of points");
+				var x_positions = [];
+				var y_positions = [];
+				var index_of_partner_one = [];
+				var index_of_partner_two = [];
+				var x_prime_pos = [];
+				var y_prime_pos = [];
+				var max_velocity = getInput("Max velocity");
+				var min_distance_from_partners = getInput("Min distance");
+				function randomIndex (upperBound)
+				{
+					return Math.floor(Math.random()*upperBound);
+				}
+				function fillWithRandomPoints (num)
+				{
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					for (var i = 0; i < num; i++)
+					 {
+					 	x_positions [i] = randomIndex(canvas.width);
+					 }
+					for (var i = 0; i < num; i++)
+					{
+						y_positions [i] = randomIndex(canvas.height);
+					}
+				}
+				function setPartners ()
+				{
+					for (var i = 0; i < num_points; i++)
+					{
+						var p1 = randomIndex(num_points);
+						while (p1 == i)
+						{
+							p1 = randomIndex(num_points);
+						}
+						index_of_partner_one [i] = p1;
+
+						var p2 = randomIndex(num_points);
+						while ((p2 == i) || (p2 == p1))
+						{
+							p2 = randomIndex(num_points);
+						}
+						index_of_partner_two [i] = p2;
+					}
+				}
+				// point1, point2 are indexes of the x- and y-positions of two 
+				// points
+				function findDistance (x1, x2, y1, y2)
+				{
+					return Math.sqrt(Math.pow((x2 - x1), 2) + 
+									  Math.pow((y2 - y1), 2));
+				}
+				// a_point is an index of a point that is about to move
+				function makeMove (a_point)
+				{
+					var x_of_a_point = x_positions [a_point];
+					var y_of_a_point = y_positions [a_point];
+					var x_of_p1 = x_positions [index_of_partner_one [a_point]];
+					var y_of_p1 = y_positions [index_of_partner_one [a_point]];
+					var x_of_p2 = x_positions [index_of_partner_two [a_point]];
+					var y_of_p2 = y_positions [index_of_partner_two [a_point]];
+					var x_midpoint = (x_of_p1 + x_of_p2) / 2;
+					var y_midpoint = (y_of_p1 + y_of_p2) / 2;
+					var v_sub_x = ((y_of_p2 - y_of_p1) * Math.sqrt(3) / 2);
+					var v_sub_y = (-(x_of_p2 - x_of_p1) * Math.sqrt(3) / 2);
+					var v_magnitude = Math.sqrt(v_sub_x * v_sub_x + 
+												v_sub_y * v_sub_y);
+					var pot_new_x1 = x_midpoint + v_sub_x;
+					var pot_new_y1 = y_midpoint + v_sub_y;
+					var pot_new_x2 = x_midpoint - v_sub_x;
+					var pot_new_y2 = y_midpoint - v_sub_y;
+					var d_to_pot1 = findDistance (x_of_a_point, y_of_a_point, 
+												  pot_new_x1, pot_new_y1);
+					var d_to_pot2 = findDistance (x_of_a_point, y_of_a_point, 
+												  pot_new_x2, pot_new_y2);
+					var v2_sub_x;
+					var v2_sub_y;
+					if (d_to_pot1 < d_to_pot2)
+					{
+						v2_sub_x = pot_new_x1 - x_of_a_point;
+						v2_sub_y = pot_new_y1 - y_of_a_point;
+					}
+					else
+					{
+						v2_sub_x = pot_new_x2 - x_of_a_point;
+						v2_sub_y = pot_new_y2 - y_of_a_point;
+					}
+					var v2_magnitude = Math.sqrt(v2_sub_x * v2_sub_x + 
+												 v2_sub_y * v2_sub_y);
+					if (v2_magnitude > max_velocity)
+					{
+						v2_sub_x = v2_sub_x * max_velocity / v2_magnitude;
+						v2_sub_y = v2_sub_y * max_velocity / v2_magnitude;
+					}
+					var new_x_pos = x_of_a_point + v2_sub_x;
+					var new_y_pos = y_of_a_point + v2_sub_y;
+					if ((findDistance(new_x_pos, new_y_pos, x_of_p1, y_of_p1) > 
+						min_distance_from_partners) 
+						&& (findDistance(new_x_pos, new_y_pos, x_of_p2, y_of_p2) > min_distance_from_partners))
+					{
+						x_prime_pos [a_point] = new_x_pos;
+						y_prime_pos [a_point] = new_y_pos;
+					}
+					else
+					{
+						x_prime_pos [a_point] = x_of_a_point;
+						y_prime_pos [a_point] = y_of_a_point;
+					}
+				}
+				function drawPoints ()
+				{
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					for (var i = 0; i < num_points; i++)
+					{
+						context.fillRect(x_positions [i], y_positions [i], 
+										 10, 10);
+					}
+				}
+				function drawLines ()
+				{
+					var x = x_positions [0];
+					var y = y_positions [0];
+					var x1 = x_positions [index_of_partner_one [0]];
+					var y1 = y_positions [index_of_partner_one [0]];
+					var x2 = x_positions [index_of_partner_two [0]];
+					var y2 = y_positions [index_of_partner_two [0]];
+					context.beginPath();
+    				context.moveTo(x,y);
+    				context.lineTo(x1,y1);
+    				context.stroke();
+    				context.beginPath();
+    				context.moveTo(x,y);
+    				context.lineTo(x2,y2);
+    				context.stroke();
+				}
+
+				// Global code, to be done before setInterval
+				fillWithRandomPoints (num_points);
+				setPartners();
+
+				window.setInterval (function () 
+					{
+						drawPoints();
+						drawLines();
+						for (var n = 0; n < num_points; n++)
+						{
+							var num_pts = getInput("Number of points");
+							if (num_pts != "" && num_pts != num_points)
+							{
+								num_points = num_pts;
+								fillWithRandomPoints (num_points);
+								setPartners();
+							}
+							max_velocity = getInput("Max velocity");
+							min_distance_from_partners = getInput("Min distance");
+							makeMove (n);
+						}
+						x_positions = x_prime_pos;
+						y_positions = y_prime_pos;
+					}, 1000/60)
+	</script>
+
+	</body>
+	</html>
