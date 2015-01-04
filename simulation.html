@@ -7,8 +7,20 @@
 	Maximum velocity of points:
 	<input type="number" id="Max velocity" value="0.5" min="0.1">
 	Minimum distance between points:
-	<input type="number" id="Min distance" value="10" min="0" step="1">
+	<input type="number" id="Min distance" value="0" min="0" step="1">
 </form>
+<button onclick="showLines()">
+	Show lines
+</button>
+<button onclick="hideLines()">
+	Hide lines
+</button>
+<button onclick="useForces()">
+	Move with forces
+</button>
+<button onclick="moveRandomly()">
+	Move randomly
+</button>
 <canvas id="Watsky" width="600" height="600" 
 style="border:1px solid #c3c3c3;">
 Your browser does not support the HTML canvas tag.
@@ -130,6 +142,26 @@ Your browser does not support the HTML canvas tag.
 						y_prime_pos [a_point] = y_of_a_point;
 					}
 				}
+				function makeRandomMove (a_point)
+				{
+					var x_of_a_point = x_positions [a_point];
+					var y_of_a_point = y_positions [a_point];
+					var pot_new_x_goal = randomIndex(canvas.width);
+					var pot_new_y_goal = randomIndex(canvas.height);
+					var v_sub_x = pot_new_x_goal - x_of_a_point;
+					var v_sub_y = pot_new_y_goal - y_of_a_point;
+					var v_magnitude = Math.sqrt(v_sub_x * v_sub_x + 
+												v_sub_y * v_sub_y);
+					if (v_magnitude > max_velocity)
+					{
+						v_sub_x = v_sub_x * max_velocity / v_magnitude;
+						v_sub_y = v_sub_y * max_velocity / v_magnitude;
+					}
+					var new_x_pos = x_of_a_point + v_sub_x;
+					var new_y_pos = y_of_a_point + v_sub_y;
+					x_prime_pos [a_point] = new_x_pos;
+					y_prime_pos [a_point] = new_y_pos;
+				}
 				function drawPoints ()
 				{
 					context.clearRect(0, 0, canvas.width, canvas.height);
@@ -156,15 +188,36 @@ Your browser does not support the HTML canvas tag.
     				context.lineTo(x2,y2);
     				context.stroke();
 				}
+				function showLines ()
+				{
+					wantLines = true;
+				}
+				function hideLines ()
+				{
+					wantLines = false;
+				}
+				function useForces ()
+				{
+					wantForces = true;
+				}
+				function moveRandomly ()
+				{
+					wantForces = false;
+				}
 
 				// Global code, to be done before setInterval
+				var wantLines = true;
+				var wantForces = true;
 				fillWithRandomPoints (num_points);
 				setPartners();
 
 				window.setInterval (function () 
 					{
 						drawPoints();
-						drawLines();
+						if (wantLines)
+						{
+							drawLines();
+						}
 						for (var n = 0; n < num_points; n++)
 						{
 							var num_pts = getInput("Number of points");
@@ -176,7 +229,14 @@ Your browser does not support the HTML canvas tag.
 							}
 							max_velocity = getInput("Max velocity");
 							min_distance_from_partners = getInput("Min distance");
-							makeMove (n);
+							if (wantForces)
+							{
+								makeMove (n);
+							}
+							else
+							{
+								makeRandomMove (n);
+							}
 						}
 						x_positions = x_prime_pos;
 						y_positions = y_prime_pos;
